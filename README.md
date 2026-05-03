@@ -13,8 +13,10 @@ To enable the API, add the following to `DefaultStatsAPI.ini` in your Rocket Lea
 ```ini
 [TAGame.MatchStatsExporter_TA]
 Port=49123
-PacketSendRate=60
+PacketSendRate=10
 ```
+
+`PacketSendRate` controls how many times per second the game sends telemetry. A higher value gives more samples for speed and boost averages, but honestly those metrics aren't particularly meaningful — they're in the tracker because the data was there and stats are fun, not because they drive any real insight. 10 is plenty. Bumping it up won't break anything, it'll just use more of your CPU for marginal gains on a stat you probably won't make decisions from.
 
 Restart the game after saving. The socket will open automatically whenever you're in a match.
 
