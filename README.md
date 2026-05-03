@@ -1,6 +1,7 @@
 # RL Tracker
 <p align="center">
   <img src="assets/HomeScreen.jpg" width="300"/>
+  <img src="assets/LifetimeStats.jpg" width="300"/>
 </p>
 
 A local session and lifetime stat tracker for Rocket League, built in Python. No memory reading, no DLL injection — it connects to the official Stats API that Psyonix built into the game for exactly this purpose.
