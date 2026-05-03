@@ -1,14 +1,24 @@
 # RL Tracker
 
-A local session and lifetime stat tracker for Rocket League, built in Python. No memory reading, no DLL injection — it listens to the telemetry socket that Rocket League already broadcasts natively for third-party tools.
+A local session and lifetime stat tracker for Rocket League, built in Python. No memory reading, no DLL injection — it connects to the official Stats API that Psyonix built into the game for exactly this purpose.
 
 ---
 
 ## How it works
 
-Rocket League (with BakkesMod or a compatible plugin) broadcasts live match data over a local TCP socket at `127.0.0.1:49123`. This tracker connects to that socket and reads the stream passively. It never touches game memory or modifies any files, which means it's safe to use alongside any anti-cheat.
+Rocket League has a built-in Stats API that broadcasts live match data over a local TCP socket at `127.0.0.1:49123`. It's an official Psyonix feature enabled via a config file — no mods, no third-party plugins required. This tracker connects to that socket and reads the stream passively, which means it's completely safe alongside anti-cheat.
 
-The two event types it listens for:
+To enable the API, add the following to `DefaultStatsAPI.ini` in your Rocket League config folder:
+
+```ini
+[TAGame.MatchStatsExporter_TA]
+Port=49123
+PacketSendRate=60
+```
+
+Restart the game after saving. The socket will open automatically whenever you're in a match.
+
+The two event types the tracker listens for:
 
 - `UpdateState` — fires continuously during a match. Used for live telemetry sampling (speed, boost, supersonic) and goal timeline detection.
 - `MatchDestroyed` — fires when a lobby closes. Used as a fallback commit trigger if the primary trigger (`bHasWinner`) didn't fire.
@@ -56,7 +66,7 @@ Each file can be its own text source, giving you full control over layout and po
 ## Requirements
 
 - Python 3.8+
-- BakkesMod or a compatible Rocket League plugin that broadcasts on `127.0.0.1:49123`
+- Rocket League with the Stats API enabled (see above)
 - `customtkinter` (see `requirements.txt`)
 
 ---
