@@ -1,4 +1,7 @@
 # RL Tracker
+<p align="center">
+  <img src="assets/HomeScreen.jpg" width="300"/>
+</p>
 
 A local session and lifetime stat tracker for Rocket League, built in Python. No memory reading, no DLL injection — it connects to the official Stats API that Psyonix built into the game for exactly this purpose.
 
@@ -39,7 +42,7 @@ Match results are committed as soon as `bHasWinner` flips to true in the game st
 
 **Teammate detection** — define your regular squadmates in Settings. Each teammate supports a list of alt account names so the tracker resolves them correctly regardless of which account they're on. When a teammate is detected in your lobby, that match is written to their individual lifetime node and to the relevant duo/trio group node.
 
-**Nerd Stats** (expandable panel) — per-player breakdown of goals, assists, saves, shot accuracy, assist rate, average speed, average boost, and supersonic percentage for the current session. Also shows OT rate, comeback count (came back from 3+ down), and a goal-by-goal timeline for the last match.
+**Telemetry** (expandable panel) — per-player breakdown of goals, assists, saves, shot accuracy, assist rate, average speed, average boost, and supersonic percentage for the current session. Also shows OT rate, comeback count (came back from 3+ down), and a goal-by-goal timeline for the last match.
 
 **OBS integration** — four text files are written to `%APPDATA%\RLTracker\obs_outputs\` and updated the moment any session stat changes:
 
@@ -51,10 +54,6 @@ Match results are committed as soon as `bHasWinner` flips to true in the game st
 | `streak.txt` | Current streak, e.g. `🔥 3W` or `🧊 2L` |
 
 Files always reflect whichever session is active — if you switch to unranked, the files switch with it.
-
-<p align="center">
-  <img src="assets/HomeScreen.jpg" width="300"/>
-</p>
 
 ---
 
@@ -109,3 +108,5 @@ The save file lives at `%APPDATA%\RLTracker\tracker_save_data.json`. It stores y
 - The Stats API does not broadcast playlist type (Ranked vs Casual) or MMR. Ranked/Unranked mode must be toggled manually.
 - Game mode (1v1, 2v2, etc.) is also not broadcast and must be set manually via the dropdown.
 - Telemetry is only sampled for players defined in your config. Opponents and unknown teammates are not tracked.
+
+
