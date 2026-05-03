@@ -12,7 +12,7 @@ A local session and lifetime stat tracker for Rocket League, built in Python. No
 
 Rocket League has a built-in Stats API that broadcasts live match data over a local TCP socket at `127.0.0.1:49123`. It's an official Psyonix feature enabled via a config file — no mods, no third-party plugins required. This tracker connects to that socket and reads the stream passively, which means it's completely safe alongside anti-cheat.
 
-To enable the API, add the following to `DefaultStatsAPI.ini` in your Rocket League config folder:
+To enable the API, add the following to `DefaultStatsAPI.ini` in your Rocket League config folder (usually: C:/Program Files (x86)\Steam\steamapps\common\rocketleague\TAGame\Config):
 
 ```ini
 [TAGame.MatchStatsExporter_TA]
