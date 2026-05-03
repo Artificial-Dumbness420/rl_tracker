@@ -76,7 +76,7 @@ Each file can be its own text source, giving you full control over layout and po
 ## Installation
 
 ```bash
-git clone https://github.com/yourname/rl-tracker.git
+git clone https://github.com/yourname/rl-tracker.git](https://github.com/Artificial-Dumbness420/rl_tracker
 cd rl-tracker
 pip install -r requirements.txt
 python rl_tracker.py
