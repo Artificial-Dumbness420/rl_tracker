@@ -14,8 +14,6 @@ appdata_path = os.getenv('APPDATA')
 SAVE_DIR = os.path.join(appdata_path, 'RLTracker')
 os.makedirs(SAVE_DIR, exist_ok=True)
 SAVE_FILE = os.path.join(SAVE_DIR, "tracker_save_data.json")
-OBS_DIR   = os.path.join(SAVE_DIR, "obs_outputs")
-os.makedirs(OBS_DIR, exist_ok=True)
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -361,7 +359,7 @@ class TrackerGUI(ctk.CTk):
         self.status_label.pack(pady=(0, 4))
 
         self.expand_btn = ctk.CTkButton(
-            self, text="▼ Show Nerd Stats", width=200, height=24,
+            self, text="▼ Show Telemetry", width=200, height=24,
             fg_color="transparent", border_width=1, command=self.toggle_expand)
         self.expand_btn.pack(pady=0)
 
@@ -468,11 +466,11 @@ class TrackerGUI(ctk.CTk):
         if self.is_expanded:
             self.geometry("300x340")
             self.advanced_frame.pack_forget()
-            self.expand_btn.configure(text="▼ Show Nerd Stats")
+            self.expand_btn.configure(text="▼ Show Telemetry")
         else:
             self.geometry("300x650")
             self.advanced_frame.pack(fill="both", expand=True, padx=10, pady=5)
-            self.expand_btn.configure(text="▲ Hide Nerd Stats")
+            self.expand_btn.configure(text="▲ Hide Telemetry")
         self.is_expanded = not self.is_expanded
         self.update_gui_stats()
 
@@ -560,23 +558,30 @@ class TrackerGUI(ctk.CTk):
         self.advanced_stats_box.configure(state="disabled")
 
     def update_obs_files(self):
-        """Writes current session stats to text files for OBS. Updates on every state change."""
-        sw     = self.session.get("wins", 0)
-        sl     = self.session.get("losses", 0)
+        """Writes current session stats to text files for OBS to read."""
+        obs_dir = os.path.join(SAVE_DIR, 'obs_outputs')
+        os.makedirs(obs_dir, exist_ok=True)
+        
+        sw = self.session.get("wins", 0)
+        sl = self.session.get("losses", 0)
         streak = self.session.get("streak", 0)
-        total  = sw + sl
-
-        win_rate    = f"{int(sw / total * 100)}%" if total > 0 else "0%"
-        streak_text = (f"🔥 {streak}W"      if streak > 0
-                       else f"🧊 {abs(streak)}L" if streak < 0 else "-")
-
+        diff = self.session.get("goal_diff", 0)
+        
+        streak_text = f"{streak}W" if streak > 0 else f"{abs(streak)}L" if streak < 0 else "-"
+        diff_text = f"+{diff}" if diff > 0 else str(diff)
+        
         try:
-            with open(os.path.join(OBS_DIR, "wins.txt"),    "w") as f: f.write(str(sw))
-            with open(os.path.join(OBS_DIR, "losses.txt"),  "w") as f: f.write(str(sl))
-            with open(os.path.join(OBS_DIR, "winrate.txt"), "w") as f: f.write(win_rate)
-            with open(os.path.join(OBS_DIR, "streak.txt"),  "w") as f: f.write(streak_text)
+            # Write individual files so streamers can place them anywhere
+            with open(os.path.join(obs_dir, "wins.txt"), "w") as f: f.write(str(sw))
+            with open(os.path.join(obs_dir, "losses.txt"), "w") as f: f.write(str(sl))
+            with open(os.path.join(obs_dir, "streak.txt"), "w") as f: f.write(streak_text)
+            with open(os.path.join(obs_dir, "diff.txt"), "w") as f: f.write(diff_text)
+            
+            # Write a combined file if they just want one line
+            with open(os.path.join(obs_dir, "combined.txt"), "w") as f: 
+                f.write(f"W: {sw} | L: {sl} | Streak: {streak_text}")
         except Exception:
-            pass  # Fails silently if OS blocks write access momentarily
+            pass # Fails silently if OS prevents write access temporarily
 
     def _count_comebacks(self, history):
         count = 0
