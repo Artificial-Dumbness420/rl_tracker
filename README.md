@@ -52,6 +52,10 @@ Match results are committed as soon as `bHasWinner` flips to true in the game st
 
 Files always reflect whichever session is active — if you switch to unranked, the files switch with it.
 
+<p align="center">
+  <img src="assets/HomeScreen.jpg" width="300"/>
+</p>
+
 ---
 
 ## OBS setup
