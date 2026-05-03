@@ -52,10 +52,6 @@ Match results are committed as soon as `bHasWinner` flips to true in the game st
 
 Files always reflect whichever session is active — if you switch to unranked, the files switch with it.
 
-<p align="center">
-  <img src="assets/HomeScreen.jpg" width="300"/>
-</p>
-
 ---
 
 ## OBS setup
@@ -80,7 +76,7 @@ Each file can be its own text source, giving you full control over layout and po
 ## Installation
 
 ```bash
-git clone https://github.com/Artificial-Dumbness420/rl_tracker
+git clone https://github.com/yourname/rl-tracker.git
 cd rl-tracker
 pip install -r requirements.txt
 python rl_tracker.py
@@ -106,6 +102,6 @@ The save file lives at `%APPDATA%\RLTracker\tracker_save_data.json`. It stores y
 
 ## Known limitations
 
-- The telemetry plugin does not broadcast playlist type (Ranked vs Casual) or MMR. Ranked/Unranked mode must be toggled manually.
+- The Stats API does not broadcast playlist type (Ranked vs Casual) or MMR. Ranked/Unranked mode must be toggled manually.
 - Game mode (1v1, 2v2, etc.) is also not broadcast and must be set manually via the dropdown.
 - Telemetry is only sampled for players defined in your config. Opponents and unknown teammates are not tracked.
