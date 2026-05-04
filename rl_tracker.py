@@ -14,6 +14,8 @@ appdata_path = os.getenv('APPDATA')
 SAVE_DIR = os.path.join(appdata_path, 'RLTracker')
 os.makedirs(SAVE_DIR, exist_ok=True)
 SAVE_FILE = os.path.join(SAVE_DIR, "tracker_save_data.json")
+OBS_DIR   = os.path.join(SAVE_DIR, "obs_outputs")
+os.makedirs(OBS_DIR, exist_ok=True)
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -30,6 +32,7 @@ def blank_entity_stats():
     return {
         "wins": 0, "losses": 0,
         "goals": 0, "assists": 0, "saves": 0, "shots": 0, "demos": 0,
+        "touches": 0, "bumps": 0,
         "speed_sum": 0, "boost_sum": 0, "supersonic_frames": 0, "samples": 0,
         "by_mode": {}
     }
@@ -54,7 +57,7 @@ def commit_entity(lifetime, key, mode, result, match_stats):
     else:
         node["losses"]      += 1
         mode_node["losses"] += 1
-    for stat in["goals", "assists", "saves", "shots", "demos",
+    for stat in ["goals", "assists", "saves", "shots", "demos", "touches", "bumps",
                  "speed_sum", "boost_sum", "supersonic_frames", "samples"]:
         node[stat] = node.get(stat, 0) + match_stats.get(stat, 0)
 
@@ -79,6 +82,7 @@ def format_stat_block(node, label):
         f"=== {label} ===",
         f"  Record   : {w}W – {l}L  (WR: {wr})",
         f"  G:{g}  A:{a}  Sv:{sv}  Shots:{sh}",
+        f"  Touches: {node.get('touches', 0)}  |  Bumps: {node.get('bumps', 0)}  |  Demos: {node.get('demos', 0)}",
         f"  Shot Acc : {acc}  |  Assist Rate: {ar}",
         f"  Avg Speed: {spd}  |  Avg Boost: {bst}",
         f"  Supersonic: {ss}% of match",
@@ -95,44 +99,66 @@ def format_stat_block(node, label):
 
 class SettingsWindow(ctk.CTkToplevel):
     """
-    Dynamic teammate management. Each teammate has a canonical name + aliases.
-    Config structure:
-        config["teammates"] = [
-            {"name": "Nibbler", "aliases": ["NibblerAlt"]},
-            {"name": "jstfrx",  "aliases":[]},
-        ]
+    Settings window with General (player/teammates) and Display (telemetry toggles) tabs.
     """
+    # All toggleable stats with display labels
+    DISPLAY_OPTIONS = [
+        ("goals_assists_saves",  "Goals / Assists / Saves / Shots"),
+        ("shot_accuracy",        "Shot Accuracy"),
+        ("assist_rate",          "Assist Rate"),
+        ("avg_speed",            "Avg Speed"),
+        ("avg_boost",            "Avg Boost"),
+        ("supersonic_pct",       "Supersonic %"),
+        ("touches",              "Ball Touches"),
+        ("bumps",                "Bumps"),
+        ("demos",                "Demos"),
+        ("ot_rate",              "OT Rate"),
+        ("comebacks",            "Comeback Count"),
+        ("last_match_timeline",  "Last Match Timeline"),
+    ]
+
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Settings")
-        self.geometry("380x500")
+        self.geometry("380x540")
         self.attributes("-topmost", True)
         self.resizable(False, False)
         self.parent = parent
 
-        ctk.CTkLabel(self, text="Your RL Name (partial match):",
-                     font=("Arial", 12, "bold")).pack(pady=(15, 2))
-        self.name_entry = ctk.CTkEntry(self, width=280)
-        self.name_entry.pack(pady=(0, 10))
-        self.name_entry.insert(0, parent.config.get("primary_player", ""))
+        self.tab_view = ctk.CTkTabview(self, width=360, height=490)
+        self.tab_view.pack(padx=10, pady=10, fill="both", expand=True)
 
-        ctk.CTkLabel(self, text="Tracked Teammates:",
-                     font=("Arial", 12, "bold")).pack(pady=(5, 2))
-
-        self.teammate_frame = ctk.CTkScrollableFrame(self, width=340, height=240)
-        self.teammate_frame.pack(padx=10, pady=(0, 8))
-
-        self.teammate_rows =[]
-        for tm in parent.config.get("teammates",[]):
-            self._add_teammate_row(tm.get("name", ""), ", ".join(tm.get("aliases",[])))
-
-        ctk.CTkButton(self, text="+ Add Teammate", width=160,
-                      fg_color="#2980B9", hover_color="#2471A3",
-                      command=lambda: self._add_teammate_row()).pack(pady=(0, 6))
+        self._build_general_tab()
+        self._build_display_tab()
 
         ctk.CTkButton(self, text="Save Settings", width=160,
                       fg_color="#2ECC71", hover_color="#27AE60",
-                      command=self.save_settings).pack(pady=(4, 15))
+                      command=self.save_settings).pack(pady=(0, 12))
+
+    # ── General tab ──────────────────────────────────────────────────────────
+
+    def _build_general_tab(self):
+        tab = self.tab_view.add("General")
+
+        ctk.CTkLabel(tab, text="Your RL Name (partial match):",
+                     font=("Arial", 12, "bold")).pack(pady=(12, 2))
+        self.name_entry = ctk.CTkEntry(tab, width=280)
+        self.name_entry.pack(pady=(0, 10))
+        self.name_entry.insert(0, self.parent.config.get("primary_player", ""))
+
+        ctk.CTkLabel(tab, text="Tracked Teammates:",
+                     font=("Arial", 12, "bold")).pack(pady=(5, 2))
+
+        self.teammate_frame = ctk.CTkScrollableFrame(tab, width=330, height=210)
+        self.teammate_frame.pack(padx=6, pady=(0, 8))
+
+        self.teammate_rows = []
+        for tm in self.parent.config.get("teammates", []):
+            self._add_teammate_row(tm.get("name", ""), ", ".join(tm.get("aliases", [])))
+
+        ctk.CTkButton(tab, text="+ Add Teammate", width=160,
+                      fg_color="#2980B9", hover_color="#2471A3",
+                      command=lambda: self._add_teammate_row()).pack(pady=(0, 4))
 
     def _add_teammate_row(self, name="", aliases=""):
         row_frame = ctk.CTkFrame(self.teammate_frame, fg_color="#2b2b2b", corner_radius=6)
@@ -162,22 +188,52 @@ class SettingsWindow(ctk.CTkToplevel):
             {"frame": row_frame, "name_entry": name_entry, "alias_entry": alias_entry})
 
     def _remove_row(self, frame):
-        self.teammate_rows =[r for r in self.teammate_rows if r["frame"] is not frame]
+        self.teammate_rows = [r for r in self.teammate_rows if r["frame"] is not frame]
         frame.destroy()
+
+    # ── Display tab ──────────────────────────────────────────────────────────
+
+    def _build_display_tab(self):
+        tab = self.tab_view.add("Display")
+        ctk.CTkLabel(tab, text="Telemetry Panel — show/hide stats:",
+                     font=("Arial", 12, "bold")).pack(pady=(12, 6))
+
+        scroll = ctk.CTkScrollableFrame(tab, width=330, height=330)
+        scroll.pack(padx=6, pady=(0, 8))
+
+        prefs = self.parent.config.get("display_prefs", {})
+        self.toggle_vars = {}
+
+        for key, label in self.DISPLAY_OPTIONS:
+            var = ctk.BooleanVar(value=prefs.get(key, True))
+            self.toggle_vars[key] = var
+            row = ctk.CTkFrame(scroll, fg_color="transparent")
+            row.pack(fill="x", padx=4, pady=3)
+            ctk.CTkSwitch(row, text=label, variable=var,
+                          onvalue=True, offvalue=False).pack(side="left")
+
+    # ── Save ─────────────────────────────────────────────────────────────────
 
     def save_settings(self):
         self.parent.config["primary_player"] = self.name_entry.get().strip()
-        teammates =[]
+
+        teammates = []
         for row in self.teammate_rows:
             name = row["name_entry"].get().strip()
             if not name:
                 continue
             aliases_raw = row["alias_entry"].get().strip()
-            aliases =[a.strip() for a in aliases_raw.split(",") if a.strip()]
+            aliases = [a.strip() for a in aliases_raw.split(",") if a.strip()]
             teammates.append({"name": name, "aliases": aliases})
         self.parent.config["teammates"] = teammates
+
+        self.parent.config["display_prefs"] = {
+            key: var.get() for key, var in self.toggle_vars.items()
+        }
+
         self.parent.save_data()
         self.parent.update_status("⚙️ Settings saved!", "#3498DB")
+        self.parent.update_gui_stats()
         self.destroy()
 
 
@@ -243,7 +299,7 @@ class TrackerGUI(ctk.CTk):
 
         self.is_expanded  = False
         self.is_unranked  = False
-        self.config       = {"primary_player": "", "teammates":[]}
+        self.config       = {"primary_player": "", "teammates": [], "display_prefs": {}}
         self.lifetime_stats = {}
 
         self.session_ranked   = blank_session()
@@ -279,6 +335,10 @@ class TrackerGUI(ctk.CTk):
     @property
     def session(self):
         return self.session_unranked if self.is_unranked else self.session_ranked
+
+    def disp(self, key):
+        """Returns True if a display pref is enabled. Defaults to True if not set."""
+        return self.config.get("display_prefs", {}).get(key, True)
 
     # ── UI CONSTRUCTION ──────────────────────────────────────────────────────
 
@@ -510,9 +570,9 @@ class TrackerGUI(ctk.CTk):
 
         mode_label = "UNRANKED" if self.is_unranked else "RANKED"
         text = f"--- {mode_label} SESSION (Diff: {diff_str}) ---\n"
-        if mc > 0:
+        if mc > 0 and self.disp("ot_rate"):
             text += f"OT Rate   : {ot_count}/{mc} matches\n"
-        if cb_count > 0:
+        if cb_count > 0 and self.disp("comebacks"):
             text += f"Comebacks : {cb_count} (came back from 3+)\n"
 
         text += "\n--- PLAYER STATS ---\n"
@@ -531,13 +591,28 @@ class TrackerGUI(ctk.CTk):
                 spd  = int(p.get("speed_sum", 0) / samp)           if samp > 0 else 0
                 bst  = int(p.get("boost_sum", 0) / samp)           if samp > 0 else 0
                 ss   = int(p.get("supersonic_frames", 0)/samp*100) if samp > 0 else 0
-                text += (f"\n[{name}]\n"
-                         f"  G:{g}  A:{a}  Sv:{s}  Shots:{sh}\n"
-                         f"  Shot Acc : {acc}  |  Assist Rate: {ar}\n"
-                         f"  Avg Speed: {spd}  |  Avg Boost: {bst}\n"
-                         f"  Supersonic: {ss}% of match\n")
 
-        if history:
+                text += f"\n[{name}]\n"
+                if self.disp("goals_assists_saves"):
+                    text += f"  G:{g}  A:{a}  Sv:{s}  Shots:{sh}\n"
+                if self.disp("shot_accuracy"):
+                    text += f"  Shot Acc : {acc}\n"
+                if self.disp("assist_rate"):
+                    text += f"  Assist Rate: {ar}\n"
+                if self.disp("touches"):
+                    text += f"  Touches  : {p.get('touches', 0)}\n"
+                if self.disp("bumps"):
+                    text += f"  Bumps    : {p.get('bumps', 0)}\n"
+                if self.disp("demos"):
+                    text += f"  Demos    : {p.get('demos', 0)}\n"
+                if self.disp("avg_speed"):
+                    text += f"  Avg Speed: {spd}\n"
+                if self.disp("avg_boost"):
+                    text += f"  Avg Boost: {bst}\n"
+                if self.disp("supersonic_pct"):
+                    text += f"  Supersonic: {ss}% of match\n"
+
+        if history and self.disp("last_match_timeline"):
             lm     = history[-1]
             res    = lm["result"].upper()
             ot_tag = " (OT)" if lm.get("went_to_ot") else ""
@@ -558,30 +633,23 @@ class TrackerGUI(ctk.CTk):
         self.advanced_stats_box.configure(state="disabled")
 
     def update_obs_files(self):
-        """Writes current session stats to text files for OBS to read."""
-        obs_dir = os.path.join(SAVE_DIR, 'obs_outputs')
-        os.makedirs(obs_dir, exist_ok=True)
-        
-        sw = self.session.get("wins", 0)
-        sl = self.session.get("losses", 0)
+        """Writes current session stats to text files for OBS. Updates on every state change."""
+        sw     = self.session.get("wins", 0)
+        sl     = self.session.get("losses", 0)
         streak = self.session.get("streak", 0)
-        diff = self.session.get("goal_diff", 0)
-        
-        streak_text = f"{streak}W" if streak > 0 else f"{abs(streak)}L" if streak < 0 else "-"
-        diff_text = f"+{diff}" if diff > 0 else str(diff)
-        
+        total  = sw + sl
+
+        win_rate    = f"{int(sw / total * 100)}%" if total > 0 else "0%"
+        streak_text = (f"🔥 {streak}W"       if streak > 0
+                       else f"🧊 {abs(streak)}L" if streak < 0 else "-")
+
         try:
-            # Write individual files so streamers can place them anywhere
-            with open(os.path.join(obs_dir, "wins.txt"), "w") as f: f.write(str(sw))
-            with open(os.path.join(obs_dir, "losses.txt"), "w") as f: f.write(str(sl))
-            with open(os.path.join(obs_dir, "streak.txt"), "w") as f: f.write(streak_text)
-            with open(os.path.join(obs_dir, "diff.txt"), "w") as f: f.write(diff_text)
-            
-            # Write a combined file if they just want one line
-            with open(os.path.join(obs_dir, "combined.txt"), "w") as f: 
-                f.write(f"W: {sw} | L: {sl} | Streak: {streak_text}")
+            with open(os.path.join(OBS_DIR, "wins.txt"),    "w") as f: f.write(str(sw))
+            with open(os.path.join(OBS_DIR, "losses.txt"),  "w") as f: f.write(str(sl))
+            with open(os.path.join(OBS_DIR, "winrate.txt"), "w") as f: f.write(win_rate)
+            with open(os.path.join(OBS_DIR, "streak.txt"),  "w") as f: f.write(streak_text)
         except Exception:
-            pass # Fails silently if OS prevents write access temporarily
+            pass  # Fails silently if OS blocks write access momentarily
 
     def _count_comebacks(self, history):
         count = 0
@@ -640,10 +708,11 @@ class TrackerGUI(ctk.CTk):
         for player_name, ms in self.live_match_stats.items():
             self.session["players"].setdefault(player_name, {
                 "goals": 0, "assists": 0, "saves": 0, "shots": 0, "demos": 0,
+                "touches": 0, "bumps": 0,
                 "speed_sum": 0, "boost_sum": 0, "supersonic_frames": 0, "samples": 0
             })
             node = self.session["players"][player_name]
-            for k in["goals", "assists", "saves", "shots", "demos",
+            for k in ["goals", "assists", "saves", "shots", "demos", "touches", "bumps",
                       "speed_sum", "boost_sum", "supersonic_frames", "samples"]:
                 node[k] += ms.get(k, 0)
 
@@ -772,6 +841,7 @@ class TrackerGUI(ctk.CTk):
             if canon:
                 self.live_match_stats.setdefault(canon, {
                     "goals": 0, "assists": 0, "saves": 0, "shots": 0, "demos": 0,
+                    "touches": 0, "bumps": 0,
                     "speed_sum": 0, "boost_sum": 0, "supersonic_frames": 0, "samples": 0
                 })
                 ps = self.live_match_stats[canon]
@@ -780,6 +850,8 @@ class TrackerGUI(ctk.CTk):
                 ps["saves"]   = p.get("Saves",    ps["saves"])
                 ps["shots"]   = p.get("Shots",    ps["shots"])
                 ps["demos"]   = p.get("Demos",    ps["demos"])
+                ps["touches"] = p.get("Touches",  ps["touches"])
+                ps["bumps"]   = p.get("CarTouches", ps["bumps"])
                 spd = p.get("Speed", 0)
                 if spd > 0:
                     ps["speed_sum"]         += spd
